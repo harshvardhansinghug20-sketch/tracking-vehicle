@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dispatch Live Tracking Board — Gabriel India × TVS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #03101c;
+  --bg2:       #061828;
+  --panel:     #091f34;
+  --card:      #0c2740;
+  --row-even:  rgba(12,39,64,0.7);
+  --row-odd:   rgba(6,24,40,0.4);
+  --border:    rgba(255,255,255,0.06);
+  --borderL:   rgba(255,255,255,0.11);
+  --red:       #C8102E;
+  --reddk:     #9B0B20;
+  --redglow:   rgba(200,16,46,0.35);
+  --gold:      #f5a623;
+  --white:     #ffffff;
+  --text:      #ddeaf8;
+  --text2:     #8aaecb;
+  --text3:     #3d607e;
+  --green:     #22c55e;
+  --amber:     #f59e0b;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════
+   FLYING BACKGROUND CANVAS
+═══════════════════════════════════════════ */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* subtle deep radial atmosphere */
+.atmo {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 50%, rgba(200,16,46,0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 60% at 80% 30%, rgba(0,48,135,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 50% 80%, rgba(200,16,46,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════
+   APP WRAPPER
+═══════════════════════════════════════════ */
+.app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header {
+  background: linear-gradient(180deg, rgba(2,10,18,0.98) 0%, rgba(4,15,26,0.95) 100%);
+  border-bottom: 1px solid var(--borderL);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.7);
+  position: sticky; top: 0; z-index: 200;
+  backdrop-filter: blur(12px);
+}
+
+.hdr-main {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  align-items: center;
+  padding: 10px 28px;
+  gap: 12px;
+  min-height: 72px;
+}
+
+/* Logo boxes */
+.logo-wrap {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--borderL);
+  border-radius: 10px;
+  padding: 8px 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.logo-wrap img {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+.logo-l { display: flex; justify-content: flex-start; }
+.logo-r { display: flex; justify-content: flex-end; }
+
+/* Center heading */
+.hdr-center {
+  text-align: center;
+}
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--red);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.main-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 4px;
+  color: var(--white);
+  line-height: 1;
+  text-shadow:
+    0 0 20px var(--redglow),
+    0 0 60px rgba(200,16,46,0.15);
+}
+.sub-title {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+/* Red animated strip */
+.hdr-strip {
+  height: 2.5px;
+  background: linear-gradient(90deg,
+    #003087 0%, #0057d9 15%, #004cc7 30%,
+    var(--red) 50%, #ff4060 65%,
+    var(--red) 80%, #003087 100%);
+  background-size: 300% 100%;
+  animation: stripSlide 5s linear infinite;
+}
+@keyframes stripSlide {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+/* Sub-nav */
+.subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 40px;
+  background: rgba(3,10,18,0.7);
+  border-bottom: 1px solid var(--border);
+}
+.subnav-l { display: flex; align-items: center; gap: 2px; }
+.ntab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text3);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.2s;
+  position: relative; top: 1px;
+}
+.ntab:hover { color: var(--text2); }
+.ntab.on { color: white; border-bottom-color: var(--red); }
+.nbadge {
+  background: var(--red); color: white;
+  border-radius: 8px; padding: 1px 6px; font-size: 9px;
+}
+.subnav-r { display: flex; align-items: center; gap: 10px; }
+.live-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--borderL);
+  border-radius: 20px; padding: 5px 14px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: dotPulse 2.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.dot.loading { background: var(--amber); animation: none; }
+.dot.err     { background: var(--red);   animation: none; }
+@keyframes dotPulse {
+  0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(34,197,94,0.5); }
+  50%     { opacity:.6; box-shadow:0 0 0 5px rgba(34,197,94,0); }
+}
+.live-lbl {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text2);
+}
+.clk {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 9px;
+}
+
+/* ═══════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════ */
+main {
+  flex: 1;
+  padding: 18px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ═══════════════════════════════════════════
+   DIAGNOSTIC BANNER
+═══════════════════════════════════════════ */
+.diag {
+  display: none;
+  background: rgba(200,16,46,0.08);
+  border: 1px solid rgba(200,16,46,0.28);
+  border-radius: 10px;
+  padding: 14px 18px;
+  animation: fadeIn 0.3s ease;
+}
+.diag.show { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;} }
+.diag-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: #ff8a96;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.diag-steps { display: flex; flex-direction: column; gap: 7px; }
+.diag-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 12.5px; color: var(--text2); line-height: 1.5;
+}
+.diag-step a { color: #6b9fff; }
+.diag-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: #ff8a96;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px; padding: 8px 12px;
+  margin-top: 10px; word-break: break-all;
+}
+
+/* ═══════════════════════════════════════════
+   CONFIG DRAWER (collapsed)
+═══════════════════════════════════════════ */
+.cfg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cfg-toggle {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--borderL);
+  border-radius: 7px; padding: 7px 14px;
+  cursor: pointer; transition: background .2s;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text3); white-space: nowrap;
+}
+.cfg-toggle:hover { background: rgba(255,255,255,0.07); color: var(--text2); }
+.cfg-toggle .arr { transition: transform .3s; display: inline-block; }
+.cfg-toggle.open .arr { transform: rotate(180deg); }
+.cfg-drawer {
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--borderL);
+  border-radius: 10px; overflow: hidden;
+  margin-top: 8px;
+}
+.cfg-hd {
+  background: rgba(200,16,46,0.1);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 18px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text2);
+}
+.cfg-badge {
+  background: rgba(200,16,46,0.25); color: #ff8a96;
+  border-radius: 4px; padding: 1px 7px;
+  font-size: 9px; letter-spacing: 1px;
+}
+.cfg-body {
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 160px auto;
+  gap: 10px; align-items: end;
+}
+.field label {
+  display: block; font-size: 9.5px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 5px;
+}
+.field input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--borderL);
+  border-radius: 7px; padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text);
+  outline: none; transition: all .2s;
+}
+.field input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(200,16,46,0.12); }
+.field input::placeholder { color: var(--text3); }
+.conn-btn {
+  background: var(--red); border: none; border-radius: 7px;
+  padding: 8px 20px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: white; cursor: pointer;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: all .2s;
+  box-shadow: 0 4px 14px rgba(200,16,46,0.3);
+  white-space: nowrap;
+}
+.conn-btn:hover { background: var(--reddk); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════
+   SECTION WRAPPERS
+═══════════════════════════════════════════ */
+#secTable { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+#secMap   { display: none; flex-direction: column; gap: 14px; }
+
+/* ═══════════════════════════════════════════
+   TOOLBAR (simplified — no col highlight/compact)
+═══════════════════════════════════════════ */
+.toolbar {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  background: rgba(9,31,52,0.85);
+  border: 1px solid var(--borderL);
+  border-radius: 9px; padding: 9px 14px;
+  gap: 10px; flex-wrap: wrap;
+  backdrop-filter: blur(8px);
+}
+.tb-l { display: flex; align-items: center; gap: 8px; }
+.tb-r { display: flex; align-items: center; gap: 8px; }
+
+.srch {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--borderL);
+  border-radius: 7px; padding: 7px 12px; width: 260px;
+  transition: all .2s;
+}
+.srch:focus-within { border-color: var(--red); box-shadow: 0 0 0 3px rgba(200,16,46,0.1); }
+.srch svg { color: var(--text3); flex-shrink: 0; }
+.srch input {
+  border: none; outline: none; background: none;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--text); width: 100%;
+}
+.srch input::placeholder { color: var(--text3); }
+
+.ref-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(200,16,46,0.14);
+  border: 1px solid rgba(200,16,46,0.32);
+  border-radius: 7px; padding: 7px 14px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: .5px; text-transform: uppercase;
+  color: #ff8a96; cursor: pointer; transition: all .2s;
+}
+.ref-btn:hover { background: var(--red); color: white; border-color: var(--red); }
+.ref-btn.spin svg { animation: spinR .7s linear infinite; }
+@keyframes spinR { to { transform: rotate(360deg); } }
+
+.row-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 11px;
+}
+.row-count strong { color: var(--text2); }
+
+/* ═══════════════════════════════════════════
+   TABLE CARD — FULL VISIBLE, NO SCROLLBAR CLAMP
+═══════════════════════════════════════════ */
+.tbl-wrap {
+  background: rgba(9,31,52,0.9);
+  border: 1px solid var(--borderL);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(200,16,46,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
+/* Progress bar top */
+.prog-bar { height: 2.5px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+.prog-fill {
+  position: absolute; height: 100%; left: 0; top: 0;
+  background: linear-gradient(90deg, var(--red), #ff6b35, var(--red));
+  background-size: 200% 100%;
+  animation: progAnim 2s linear infinite;
+  width: 0%; transition: width .3s linear;
+}
+@keyframes progAnim { 0%{background-position:0% 50%;}100%{background-position:200% 50%;} }
+
+/* Loading overlay */
+.load-ov {
+  position: absolute; inset: 0;
+  background: rgba(6,24,40,0.75);
+  backdrop-filter: blur(4px);
+  display: grid; place-items: center;
+  z-index: 30; opacity: 0; pointer-events: none;
+  transition: opacity .2s; border-radius: 12px;
+}
+.load-ov.on { opacity: 1; pointer-events: all; }
+.spinner {
+  width: 34px; height: 34px;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spinR .8s linear infinite;
+}
+
+/* ── THE TABLE — no max-height, show everything ── */
+.tbl-scroll {
+  overflow-x: auto;
+  overflow-y: visible; /* NO clamp — show full data */
+}
+.tbl-scroll::-webkit-scrollbar { height: 6px; }
+.tbl-scroll::-webkit-scrollbar-track { background: var(--bg2); }
+.tbl-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+/* Sticky header */
+thead { position: sticky; top: 0; z-index: 20; }
+thead tr {
+  background: linear-gradient(180deg, #0d2035 0%, #091929 100%);
+}
+thead th {
+  padding: 0;
+  border-bottom: 2px solid var(--red);
+}
+
+.th-in {
+  display: flex; align-items: center; gap: 6px;
+  padding: 13px 16px;
+  cursor: pointer; user-select: none; white-space: nowrap;
+  transition: background .15s;
+}
+.th-in:hover { background: rgba(200,16,46,0.1); }
+
+.th-lbl {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+.th-in:hover .th-lbl { color: rgba(255,255,255,0.9); }
+.th-col {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: rgba(255,255,255,0.16);
+  margin-left: auto; flex-shrink: 0;
+}
+.sico { font-size: 10px; color: rgba(255,255,255,0.16); transition: color .15s; }
+.th-in:hover .sico { color: rgba(255,255,255,0.5); }
+.th-in.sa .sico { color: var(--gold); }
+.th-in.sd .sico { color: #ff8a96; }
+.th-in.sa .th-lbl,
+.th-in.sd .th-lbl { color: white; }
+
+/* Row number header */
+.th-rn { width: 48px; min-width: 48px; background: rgba(200,16,46,0.05); }
+.th-rn .th-in { cursor: default; justify-content: center; }
+.th-rn .th-in:hover { background: none; }
+.th-rn .th-lbl { font-size: 9.5px; color: rgba(255,255,255,0.22); }
+
+/* BODY — NOT CLICKABLE */
+tbody tr {
+  border-left: 3px solid transparent;
+  cursor: default; /* not a pointer */
+  transition: background .1s;
+}
+tbody tr:nth-child(even) { background: var(--row-even); }
+tbody tr:nth-child(odd)  { background: var(--row-odd); }
+/* NO hover effect — rows are display-only */
+
+tbody tr.rin { animation: rowSlideIn .35s ease both; }
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* CELLS */
+tbody td {
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.035);
+  vertical-align: middle;
+  color: var(--text2);
+  white-space: nowrap;
+  user-select: text; /* text selectable but row not clickable */
+}
+tbody tr:last-child td { border-bottom: none; }
+
+/* Row number */
+td.rn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  text-align: center;
+  background: rgba(0,0,0,0.2) !important;
+  border-right: 1px solid var(--border);
+  width: 48px; min-width: 48px; padding: 11px 6px;
+}
+
+/* First column — primary */
+td.cprim {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700; color: var(--white);
+  font-size: 13.5px;
+}
+
+/* Number pill */
+.np {
+  display: inline-flex; align-items: center;
+  background: rgba(34,197,94,0.1); color: #4ade80;
+  border-radius: 5px; padding: 2px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 500;
+}
+
+/* Tag pill */
+.tp {
+  display: inline-flex; align-items: center;
+  border-radius: 5px; padding: 2px 8px;
+  font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Empty */
+.ec { color: rgba(255,255,255,0.12); font-style: italic; font-size: 11px; }
+
+/* Table footer */
+.tbl-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px;
+  border-top: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+}
+.foot-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+}
+.foot-txt strong { color: var(--text2); }
+.per-pg {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--borderL);
+  border-radius: 6px; padding: 4px 9px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; color: var(--text2); outline: none; cursor: pointer;
+}
+.per-pg option { background: #0a2540; }
+
+/* ═══════════════════════════════════════════
+   STATE BOXES
+═══════════════════════════════════════════ */
+.state-box { padding: 60px 40px; text-align: center; }
+.si  { font-size: 44px; margin-bottom: 14px; display: block; }
+.st  { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--text2); margin-bottom: 8px; }
+.ss  { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════
+   MAP SECTION
+═══════════════════════════════════════════ */
+.map-tiles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+}
+.mt {
+  background: var(--panel);
+  border: 1px solid var(--borderL);
+  border-top: 3px solid var(--red);
+  border-radius: 10px; padding: 14px 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.mt-l { font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+.mt-v { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; color: var(--white); line-height: 1; }
+.mt-s { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+.map-wrap { background: var(--panel); border: 1px solid var(--borderL); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.map-hd { background: linear-gradient(90deg, #0c1f32, #091929); padding: 10px 18px; border-bottom: 2px solid var(--red); display: flex; align-items: center; justify-content: space-between; }
+.map-ht { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 8px; }
+.map-ctrl { display: flex; align-items: center; gap: 8px; }
+.map-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--borderL); border-radius: 6px; padding: 5px 11px; font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: rgba(255,255,255,0.5); cursor: pointer; transition: all .15s; }
+.map-btn:hover { background: rgba(200,16,46,0.3); color: white; }
+
+#liveMap { height: 420px; z-index: 1; }
+.map-nd { position: absolute; inset: 0; background: rgba(4,18,31,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; gap: 10px; backdrop-filter: blur(6px); transition: opacity .3s; }
+.map-nd.gone { opacity: 0; pointer-events: none; }
+.mnd-t { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: white; }
+.mnd-s { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; max-width: 300px; line-height: 1.7; }
+.mnd-hint { background: rgba(200,16,46,0.2); border: 1px solid rgba(200,16,46,0.4); border-radius: 7px; padding: 9px 16px; font-size: 12px; font-weight: 600; color: #ff8a96; text-align: center; max-width: 320px; line-height: 1.6; }
+
+.loc-list { background: var(--panel); border: 1px solid var(--borderL); border-radius: 10px; overflow: hidden; }
+.loc-hd { background: rgba(0,0,0,0.3); padding: 10px 18px; border-bottom: 1px solid var(--border); font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); }
+.loc-body { max-height: 230px; overflow-y: auto; }
+.loc-item { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+.loc-item:last-child { border-bottom: none; }
+.loc-item:hover { background: rgba(200,16,46,0.07); }
+.loc-item.acloc { background: rgba(200,16,46,0.1); border-left: 3px solid var(--red); }
+.loc-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--red); flex-shrink: 0; animation: dotPulse 2s ease-in-out infinite; }
+.loc-name { font-weight: 700; font-size: 13px; color: var(--text); }
+.loc-coord { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 2px; }
+.loc-badge { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; background: rgba(200,16,46,0.15); color: #ff6b81; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--card); border-left: 3px solid var(--red); color: var(--text); padding: 11px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 9999; transition: transform .3s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 16px 48px rgba(0,0,0,0.7); white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.ok  { border-left-color: var(--green); }
+.toast.err { border-left-color: var(--red); }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;} }
+.toolbar  { animation: slideUp .4s .05s ease both; }
+.tbl-wrap { animation: slideUp .4s .10s ease both; }
+
+/* Leaflet override for dark theme */
+.leaflet-popup-content-wrapper { border-radius: 10px; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- ANIMATED BG -->
+<canvas id="bgCanvas"></canvas>
+<div class="atmo"></div>
+
+<div class="app">
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="hdr-main">
+    <!-- TVS logo left -->
+    <div class="logo-l">
+      <div class="logo-wrap">
+        <img
+          src="https://companieslogo.com/img/orig/TVSMOTOR.NS_BIG-0666e921.png?t=1745055164"
+          alt="TVS Motor"
+          onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-family:Bebas Neue,sans-serif;font-size:22px;color:white;letter-spacing:3px;\'>TVS</span>'"
+        />
+      </div>
+    </div>
+
+    <!-- Center title -->
+    <div class="hdr-center">
+      <div class="eyebrow">● Live Operations Monitor</div>
+      <div class="main-title">Dispatch Live Tracking Board</div>
+      <div class="sub-title">Gabriel India Pvt. Ltd &nbsp;×&nbsp; TVS Motor Company</div>
+    </div>
+
+    <!-- Gabriel logo right -->
+    <div class="logo-r">
+      <div class="logo-wrap">
+        <img
+          src="https://companieslogo.com/img/orig/GABRIEL.NS_BIG-6c4249c9.png?t=1746160177"
+          alt="Gabriel India"
+          onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;color:#C8102E;letter-spacing:1px;\'>GABRIEL</span>'"
+        />
+      </div>
+    </div>
+  </div>
+  <div class="hdr-strip"></div>
+
+  <!-- Sub-nav -->
+  <div class="subnav">
+    <div class="subnav-l">
+      <button class="ntab on" id="ntabData" onclick="switchTab('data')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        Dispatch Data
+      </button>
+      <button class="ntab" id="ntabMap" onclick="switchTab('map')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        Live Location <span class="nbadge">NEW</span>
+      </button>
+    </div>
+    <div class="subnav-r">
+      <div class="clk" id="clkEl">--:--:--</div>
+      <div class="live-pill">
+        <div class="dot loading" id="dotEl"></div>
+        <span class="live-lbl" id="lblEl">Connecting</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main>
+
+  <!-- DIAGNOSTIC -->
+  <div class="diag" id="diagEl">
+    <div class="diag-title">⚠ Connection Troubleshooting</div>
+    <div class="diag-steps">
+      <div class="diag-step"><span>1️⃣</span><span>Open Google Sheet → <strong>Share</strong> → <strong>"Anyone with the link"</strong> → <strong>Viewer</strong> → Save</span></div>
+      <div class="diag-step"><span>2️⃣</span><span>Check <a href="https://console.cloud.google.com/apis/library/sheets.googleapis.com" target="_blank">Google Cloud Console</a> → Google Sheets API must be <strong>ENABLED</strong></span></div>
+      <div class="diag-step"><span>3️⃣</span><span>Make sure your API key has <strong>no IP restrictions</strong>, or your domain is whitelisted</span></div>
+      <div class="diag-step"><span>4️⃣</span><span>Verify the <strong>Range field</strong> matches your exact sheet tab name (auto-detection will try all tabs)</span></div>
+    </div>
+    <div class="diag-code" id="diagCode"></div>
+  </div>
+
+  <!-- CONFIG (hidden by default) -->
+  <div>
+    <button class="cfg-toggle" id="cfgBtn" onclick="toggleCfg()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Connection Settings
+      <span class="arr">▾</span>
+    </button>
+    <div class="cfg-drawer" id="cfgDrawer">
+      <div class="cfg-hd">⚙ API Configuration <span class="cfg-badge">GOOGLE SHEETS</span></div>
+      <div class="cfg-body">
+        <div class="field"><label>API Key</label><input id="cfgKey" type="password" value="AIzaSyCpGRsdcqT3Wz1zIH1vTFRDmJ8WxdUU_lM"/></div>
+        <div class="field"><label>Spreadsheet ID</label><input id="cfgId" type="text" value="13Fa4DkWS8QG9Fwe0NpTMFfeC4Cv9zlSUuesIWI2vLeM"/></div>
+        <div class="field"><label>Tab / Range</label><input id="cfgRange" type="text" value="Sheet1!A1:Z500"/></div>
+        <button class="conn-btn" onclick="applyConfig()">Connect →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DATA SECTION ═══ -->
+  <div id="secTable">
+
+    <!-- Toolbar — search + refresh only -->
+    <div class="toolbar">
+      <div class="tb-l">
+        <div class="srch">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="srchIn" type="text" placeholder="Search all fields…  [ / ]" oninput="filterRows()"/>
+        </div>
+        <div class="row-count" id="rowCount">—</div>
+      </div>
+      <div class="tb-r">
+        <select class="per-pg" id="perPage" onchange="renderTable()">
+          <option value="25">25 rows</option>
+          <option value="50">50 rows</option>
+          <option value="100" selected>100 rows</option>
+          <option value="500">500 rows</option>
+          <option value="9999">All rows</option>
+        </select>
+        <button class="ref-btn" id="refBtn" onclick="manualRefresh()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Table — full height, no scroll cap -->
+    <div class="tbl-wrap" id="tblWrap">
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      <div class="load-ov" id="loadOv"><div class="spinner"></div></div>
+
+      <div class="tbl-scroll">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody">
+            <tr><td colspan="99">
+              <div class="state-box">
+                <span class="si">🔗</span>
+                <div class="st">Awaiting Connection</div>
+                <div class="ss">Connecting to your Google Sheet…</div>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tbl-foot">
+        <div class="foot-txt" id="footTxt">No data</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);" id="syncTime">—</div>
+      </div>
+    </div>
+
+  </div><!-- #secTable -->
+
+  <!-- ═══ MAP SECTION ═══ -->
+  <div id="secMap" style="display:none;">
+    <div class="map-tiles">
+      <div class="mt">
+        <div class="mt-l">🕐 Last Updated</div>
+        <div class="mt-v" id="mUpd" style="font-size:17px;margin-top:4px;">—</div>
+        <div class="mt-s">auto-refresh every 10s</div>
+      </div>
+      <div class="mt">
+        <div class="mt-l">📍 Tracked Points</div>
+        <div class="mt-v" id="mCnt">—</div>
+        <div class="mt-s">from sheet</div>
+      </div>
+      <div class="mt">
+        <div class="mt-l">🛰 GPS Columns</div>
+        <div class="mt-v" id="mGps" style="font-size:14px;margin-top:5px;">—</div>
+        <div class="mt-s">detected</div>
+      </div>
+    </div>
+
+    <div class="map-wrap">
+      <div class="map-hd">
+        <div class="map-ht">📍 Live Location Tracker</div>
+        <div class="map-ctrl">
+          <button class="map-btn" onclick="fitAll()">Fit All</button>
+          <button class="map-btn" onclick="clearTracks()">Clear</button>
+          <div class="live-pill"><div class="dot" id="mDot"></div><span class="live-lbl">Live</span></div>
+        </div>
+      </div>
+      <div style="position:relative;">
+        <div id="liveMap"></div>
+        <div class="map-nd" id="mapND">
+          <div style="font-size:40px;">📍</div>
+          <div class="mnd-t">No Location Data</div>
+          <div class="mnd-s">Add <strong>Latitude</strong> & <strong>Longitude</strong> columns to your sheet</div>
+          <div class="mnd-hint">Column names: Latitude / Longitude<br/>or lat / lng / LAT / LON</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loc-list">
+      <div class="loc-hd">📋 Location Records</div>
+      <div class="loc-body" id="locBody">
+        <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">Connect to view</div>
+      </div>
+    </div>
+  </div><!-- #secMap -->
+
+</main>
+</div><!-- .app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   BACKGROUND ANIMATION — Flying TVS Bikes + Shockers
+   High quality canvas drawing with motion blur trails
+═══════════════════════════════════════════════════════ */
+(function initBG() {
+  const cv = document.getElementById('bgCanvas');
+  const ctx = cv.getContext('2d');
+
+  function resize() {
+    cv.width  = window.innerWidth;
+    cv.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── Draw a detailed TVS-style motorcycle ── */
+  function drawMotorbike(x, y, scl, alpha, dir) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    if (dir < 0) ctx.scale(-1, 1); // flip for left-moving bikes
+
+    const s = scl;
+    ctx.lineCap  = 'round';
+    ctx.lineJoin = 'round';
+
+    // WHEELS
+    ctx.strokeStyle = 'rgba(200,16,46,0.9)';
+    ctx.lineWidth = 2.2 * s;
+
+    ctx.beginPath(); ctx.arc(-34*s, 2*s, 20*s, 0, Math.PI*2); ctx.stroke(); // rear
+    ctx.beginPath(); ctx.arc(34*s,  2*s, 18*s, 0, Math.PI*2); ctx.stroke(); // front
+
+    // wheel spokes
+    ctx.lineWidth = 0.8 * s;
+    ctx.strokeStyle = 'rgba(200,16,46,0.5)';
+    for (let a = 0; a < Math.PI*2; a += Math.PI/4) {
+      ctx.beginPath();
+      ctx.moveTo(-34*s + Math.cos(a)*6*s, 2*s + Math.sin(a)*6*s);
+      ctx.lineTo(-34*s + Math.cos(a)*18*s, 2*s + Math.sin(a)*18*s);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(34*s + Math.cos(a)*5*s, 2*s + Math.sin(a)*5*s);
+      ctx.lineTo(34*s + Math.cos(a)*16*s, 2*s + Math.sin(a)*16*s);
+      ctx.stroke();
+    }
+
+    // FRAME
+    ctx.strokeStyle = 'rgba(220,220,240,0.85)';
+    ctx.lineWidth = 2 * s;
+
+    // main frame triangle
+    ctx.beginPath();
+    ctx.moveTo(-14*s, -2*s);   // bottom rear
+    ctx.lineTo(-2*s,  -22*s);  // top frame
+    ctx.lineTo(20*s,  -18*s);  // headstock
+    ctx.lineTo(34*s,  -12*s);  // fork top
+    ctx.stroke();
+
+    // bottom tube
+    ctx.beginPath();
+    ctx.moveTo(-14*s, -2*s);
+    ctx.lineTo(12*s,  -6*s);
+    ctx.lineTo(34*s,  -12*s);
+    ctx.stroke();
+
+    // swing arm
+    ctx.beginPath();
+    ctx.moveTo(-14*s, -2*s);
+    ctx.lineTo(-34*s,  2*s);
+    ctx.stroke();
+
+    // ENGINE block
+    ctx.fillStyle = 'rgba(200,16,46,0.25)';
+    ctx.strokeStyle = 'rgba(200,16,46,0.6)';
+    ctx.lineWidth = 1.2 * s;
+    ctx.beginPath();
+    ctx.roundRect(-8*s, -18*s, 22*s, 16*s, 2*s);
+    ctx.fill(); ctx.stroke();
+
+    // TANK
+    ctx.fillStyle = 'rgba(200,16,46,0.35)';
+    ctx.strokeStyle = 'rgba(220,100,100,0.7)';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(-4*s,  -22*s);
+    ctx.bezierCurveTo(-4*s,-30*s,  18*s,-30*s,  18*s,-22*s);
+    ctx.lineTo(18*s,  -18*s);
+    ctx.lineTo(-4*s,  -20*s);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // SEAT
+    ctx.fillStyle = 'rgba(150,150,170,0.5)';
+    ctx.strokeStyle = 'rgba(200,200,220,0.4)';
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.moveTo(-18*s, -22*s);
+    ctx.bezierCurveTo(-18*s,-28*s, 0, -28*s, 0, -22*s);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // RIDER silhouette
+    ctx.fillStyle = 'rgba(180,200,220,0.6)';
+    ctx.strokeStyle = 'rgba(200,220,240,0.5)';
+    ctx.lineWidth = 1.2 * s;
+    // body
+    ctx.beginPath();
+    ctx.moveTo(-10*s, -22*s);
+    ctx.lineTo(-4*s,  -36*s);
+    ctx.lineTo(4*s,   -34*s);
+    ctx.lineTo(8*s,   -22*s);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // head
+    ctx.beginPath();
+    ctx.arc(-2*s, -40*s, 6*s, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // arm reaching to handlebar
+    ctx.beginPath();
+    ctx.moveTo(4*s, -32*s);
+    ctx.lineTo(22*s, -22*s);
+    ctx.stroke();
+
+    // HEADLIGHT glow
+    ctx.shadowColor = 'rgba(255,220,100,0.9)';
+    ctx.shadowBlur  = 12 * s;
+    ctx.fillStyle   = 'rgba(255,240,160,0.95)';
+    ctx.beginPath();
+    ctx.ellipse(40*s, -8*s, 6*s, 4*s, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // exhaust trail
+    ctx.strokeStyle = 'rgba(200,200,200,0.15)';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(-54*s, 10*s);
+    ctx.bezierCurveTo(-64*s,8*s, -70*s,14*s, -80*s,12*s);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /* ── Draw a Gabriel-style shock absorber ── */
+  function drawShocker(x, y, scl, alpha, angle) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    const s = scl;
+    ctx.lineCap = 'round';
+
+    // outer body (tube)
+    ctx.strokeStyle = 'rgba(180,200,220,0.8)';
+    ctx.lineWidth = 5 * s;
+    ctx.beginPath();
+    ctx.moveTo(0, -44*s);
+    ctx.lineTo(0, -12*s);
+    ctx.stroke();
+
+    // inner rod (thinner, brighter)
+    ctx.strokeStyle = 'rgba(220,235,255,0.9)';
+    ctx.lineWidth = 2.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(0, -12*s);
+    ctx.lineTo(0, 20*s);
+    ctx.stroke();
+
+    // COIL SPRING — detailed
+    const coilTop  = -10*s;
+    const coilBot  =  18*s;
+    const coilH    = coilBot - coilTop;
+    const coilSteps = 10;
+    const coilW    = 9*s;
+    ctx.strokeStyle = 'rgba(200,16,46,0.85)';
+    ctx.lineWidth   = 1.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(0, coilTop);
+    for (let i = 0; i <= coilSteps; i++) {
+      const t  = i / coilSteps;
+      const yy = coilTop + coilH * t;
+      const xx = (i % 2 === 0) ? -coilW : coilW;
+      ctx.lineTo(xx, yy);
+    }
+    ctx.stroke();
+
+    // TOP CAP
+    ctx.fillStyle   = 'rgba(180,200,220,0.8)';
+    ctx.strokeStyle = 'rgba(220,235,255,0.7)';
+    ctx.lineWidth   = 1.2 * s;
+    ctx.beginPath();
+    ctx.roundRect(-7*s, -50*s, 14*s, 8*s, 2*s);
+    ctx.fill(); ctx.stroke();
+
+    // BOTTOM MOUNT EYE
+    ctx.strokeStyle = 'rgba(200,16,46,0.7)';
+    ctx.lineWidth   = 2 * s;
+    ctx.beginPath();
+    ctx.arc(0, 26*s, 5*s, 0, Math.PI*2);
+    ctx.stroke();
+
+    // Gabriel red brand stripe on body
+    ctx.fillStyle = 'rgba(200,16,46,0.5)';
+    ctx.beginPath();
+    ctx.roundRect(-3*s, -38*s, 6*s, 8*s, 1*s);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* ── Particles ── */
+  const bikes    = [];
+  const shockers = [];
+
+  // Create 7 bikes — some going right, some going left
+  for (let i = 0; i < 7; i++) {
+    const goRight = Math.random() > 0.3;
+    bikes.push({
+      x:     goRight ? -120 + Math.random()*200 : cv.width + 80 + Math.random()*200,
+      y:     80 + Math.random() * (cv.height - 200),
+      speed: (1.0 + Math.random() * 1.2) * (goRight ? 1 : -1),
+      scale: 0.55 + Math.random() * 0.45,
+      alpha: 0.12 + Math.random() * 0.18,
+      dir:   goRight ? 1 : -1,
+    });
+  }
+
+  // Create 10 shockers — floating/tumbling
+  for (let i = 0; i < 10; i++) {
+    shockers.push({
+      x:      Math.random() * cv.width,
+      y:      Math.random() * cv.height,
+      vy:     -(0.3 + Math.random() * 0.5),
+      vx:     (Math.random() - 0.5) * 0.4,
+      angle:  Math.random() * Math.PI * 2,
+      vAngle: (Math.random() - 0.5) * 0.012,
+      scale:  0.45 + Math.random() * 0.5,
+      alpha:  0.1 + Math.random() * 0.2,
+    });
+  }
+
+  let frameCount = 0;
+
+  function draw() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    frameCount++;
+
+    // Draw bikes
+    bikes.forEach(b => {
+      drawMotorbike(b.x, b.y, b.scale, b.alpha, b.dir);
+      b.x += b.speed;
+      // wrap around
+      if (b.dir > 0 && b.x > cv.width + 200) {
+        b.x = -150;
+        b.y = 80 + Math.random() * (cv.height - 200);
+      }
+      if (b.dir < 0 && b.x < -200) {
+        b.x = cv.width + 150;
+        b.y = 80 + Math.random() * (cv.height - 200);
+      }
+    });
+
+    // Draw shockers
+    shockers.forEach(sh => {
+      drawShocker(sh.x, sh.y, sh.scale, sh.alpha, sh.angle);
+      sh.y     += sh.vy;
+      sh.x     += sh.vx + Math.sin(frameCount * 0.008 + sh.y * 0.005) * 0.25;
+      sh.angle += sh.vAngle;
+      // wrap: if goes off top, respawn at bottom
+      if (sh.y < -120) {
+        sh.y     = cv.height + 80;
+        sh.x     = Math.random() * cv.width;
+        sh.angle = Math.random() * Math.PI * 2;
+      }
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+
+/* ═══════════════════════════════════════════
+   APP STATE
+═══════════════════════════════════════════ */
+let API_KEY  = 'AIzaSyCpGRsdcqT3Wz1zIH1vTFRDmJ8WxdUU_lM';
+let SHEET_ID = '13Fa4DkWS8QG9Fwe0NpTMFfeC4Cv9zlSUuesIWI2vLeM';
+let RANGE    = 'Sheet1!A1:Z500';
+let POLL     = 10000;
+
+let allRows=[], filteredRows=[], headers=[];
+let sortIdx=-1, sortAsc=true;
+let pollTimer, progTimer;
+let map, markers=[], polylines=[];
+
+const TPILLS = [
+  ['rgba(200,16,46,0.15)',  '#ff8a96'],
+  ['rgba(0,48,135,0.25)',   '#7badff'],
+  ['rgba(34,197,94,0.12)',  '#4ade80'],
+  ['rgba(245,166,35,0.14)', '#fbbf24'],
+  ['rgba(139,92,246,0.14)', '#a78bfa'],
+  ['rgba(20,184,166,0.14)', '#2dd4bf'],
+];
+
+/* ── Clock ── */
+(function(){
+  const c = document.getElementById('clkEl');
+  const t = () => c.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  t(); setInterval(t, 1000);
+})();
+
+/* ── Config toggle ── */
+function toggleCfg() {
+  const b = document.getElementById('cfgBtn');
+  const d = document.getElementById('cfgDrawer');
+  const open = b.classList.toggle('open');
+  d.style.display = open ? 'block' : 'none';
+}
+
+/* ── Tab switch ── */
+function switchTab(t) {
+  document.getElementById('ntabData').classList.toggle('on', t==='data');
+  document.getElementById('ntabMap').classList.toggle('on',  t==='map');
+  document.getElementById('secTable').style.display = t==='data' ? 'flex'   : 'none';
+  document.getElementById('secMap').style.display   = t==='map'  ? 'flex'   : 'none';
+  if (t==='map') { initMap(); setTimeout(()=>map&&map.invalidateSize(), 200); updateMap(); }
+}
+
+/* ── Apply config ── */
+function applyConfig() {
+  API_KEY  = document.getElementById('cfgKey').value.trim();
+  SHEET_ID = document.getElementById('cfgId').value.trim();
+  RANGE    = document.getElementById('cfgRange').value.trim();
+
+  // Extract ID if full URL pasted
+  const m = SHEET_ID.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (m) { SHEET_ID = m[1]; document.getElementById('cfgId').value = m[1]; }
+
+  if (!API_KEY)                { showDiag('API Key is empty'); return; }
+  if (SHEET_ID.length < 20)   { showDiag('Spreadsheet ID looks invalid'); return; }
+
+  clearInterval(pollTimer);
+  fetchData();
+  pollTimer = setInterval(fetchData, POLL);
+  startProg();
+
+  // auto-collapse
+  document.getElementById('cfgBtn').classList.remove('open');
+  document.getElementById('cfgDrawer').style.display = 'none';
+}
+
+/* ── Progress bar ── */
+function startProg() {
+  clearInterval(progTimer);
+  const f = document.getElementById('progFill');
+  let s = Date.now(); f.style.width = '0%';
+  progTimer = setInterval(() => {
+    const p = Math.min(((Date.now()-s)/POLL)*100, 100);
+    f.style.width = p + '%';
+    if (p >= 100) s = Date.now();
+  }, 200);
+}
+
+/* ═══════════════════════════════════════════
+   FETCH DATA
+═══════════════════════════════════════════ */
+async function fetchData() {
+  setStatus('loading'); setLoad(true); hideDiag();
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
+    console.log('[Dispatch] Fetching:', url);
+    const res  = await fetch(url);
+    const body = await res.json();
+
+    if (!res.ok) {
+      const msg    = body?.error?.message || `HTTP ${res.status}`;
+      const status = res.status;
+      if (status === 403) { showDiag(`🔒 Access Denied (403): ${msg}\n\n➡ Share your sheet as "Anyone with link → Viewer"`); throw new Error('403 Forbidden'); }
+      if (status === 400 && (msg.includes('Unable to parse range') || msg.includes('not found'))) { await autoDetect(); return; }
+      showDiag(`API Error ${status}: ${msg}`);
+      throw new Error(msg);
+    }
+
+    const rows = body.values || [];
+    console.log('[Dispatch] Rows:', rows.length);
+
+    if (!rows.length) {
+      showState('📭','Sheet Empty',`Range "${RANGE}" returned no data. Check tab name and range.`);
+      setStatus('ok'); return;
+    }
+
+    const prev  = allRows.length;
+    headers     = rows[0];
+    allRows     = rows.slice(1).filter(r => r.some(c => (c??'').toString().trim() !== ''));
+    filterRows();
+    setStatus('ok');
+    hideDiag();
+
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('syncTime').textContent = `Last sync: ${now}`;
+    document.getElementById('mUpd').textContent = now;
+
+    if (prev === 0)                 toast(`✓ Loaded ${allRows.length} rows × ${headers.length} columns`, 'ok');
+    else if (allRows.length!==prev) toast(`↑ Updated — ${allRows.length} rows`, 'ok');
+
+    if (document.getElementById('secMap').style.display !== 'none') updateMap();
+
+  } catch (err) {
+    console.error('[Dispatch] Error:', err);
+    if (!document.getElementById('diagEl').classList.contains('show')) showState('⚠️','Connection Failed', err.message);
+    setStatus('err');
+  } finally {
+    setLoad(false);
+  }
+}
+
+/* ── Auto-detect tab ── */
+async function autoDetect() {
+  try {
+    const r    = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?key=${API_KEY}`);
+    const meta = await r.json();
+    if (!r.ok) { showDiag(`Metadata error: ${meta?.error?.message||r.status}`); setStatus('err'); setLoad(false); return; }
+
+    const sheets = meta.sheets || [];
+    console.log('[Dispatch] Tabs:', sheets.map(s=>s.properties.title));
+
+    for (const sheet of sheets) {
+      const tab   = sheet.properties.title;
+      const rng   = `${tab}!A1:Z500`;
+      const tr    = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(rng)}?key=${API_KEY}`);
+      const td    = await tr.json();
+      if (tr.ok && td.values && td.values.length > 1) {
+        RANGE = rng;
+        document.getElementById('cfgRange').value = RANGE;
+        toast(`Auto-detected tab: "${tab}" — ${td.values.length-1} rows`, 'ok');
+        headers  = td.values[0];
+        allRows  = td.values.slice(1).filter(r=>r.some(c=>(c??'').toString().trim()!==''));
+        filterRows();
+        setStatus('ok'); hideDiag(); setLoad(false);
+        document.getElementById('syncTime').textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+        return;
+      }
+    }
+
+    const names = sheets.map(s=>`"${s.properties.title}"`).join(', ');
+    showDiag(`Connected but no data found.\nAvailable tabs: ${names}\n\nUpdate Range field to e.g. "${sheets[0]?.properties?.title}!A1:Z500"`);
+    setStatus('err'); setLoad(false);
+
+  } catch(e) {
+    showDiag(`Could not read metadata: ${e.message}`);
+    setStatus('err'); setLoad(false);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   FILTER
+═══════════════════════════════════════════ */
+function filterRows() {
+  const q = document.getElementById('srchIn').value.toLowerCase();
+  filteredRows = q ? allRows.filter(r => r.some(c=>(c??'').toString().toLowerCase().includes(q))) : allRows;
+  if (sortIdx >= 0) doSort(false);
+  renderTable();
+}
+
+function doSort(render=true) {
+  filteredRows = [...filteredRows].sort((a,b) => {
+    const av = (a[sortIdx]??'').toString();
+    const bv = (b[sortIdx]??'').toString();
+    const an = parseFloat(av.replace(/[$,%\s]/g,''));
+    const bn = parseFloat(bv.replace(/[$,%\s]/g,''));
+    if (!isNaN(an) && !isNaN(bn)) return sortAsc ? an-bn : bn-an;
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  if (render) renderTable();
+}
+
+/* ═══════════════════════════════════════════
+   RENDER TABLE — no click handlers on rows
+═══════════════════════════════════════════ */
+function renderTable() {
+  if (!headers.length) return;
+  const lim  = parseInt(document.getElementById('perPage').value);
+  const rows = filteredRows.slice(0, lim);
+
+  // Update row count
+  document.getElementById('rowCount').innerHTML = `<strong>${filteredRows.length}</strong> records`;
+
+  // Header
+  let th = `<tr><th class="th-rn"><div class="th-in" style="cursor:default;pointer-events:none"><span class="th-lbl">#</span></div></th>`;
+  headers.forEach((h, i) => {
+    th += `<th id="TH${i}">
+      <div class="th-in" onclick="sortCol(this,${i})">
+        <span class="th-lbl">${escH(h) || '—'}</span>
+        <span class="th-col">${cLetter(i)}</span>
+        <span class="sico">↕</span>
+      </div>
+    </th>`;
+  });
+  th += '</tr>';
+  document.getElementById('thead').innerHTML = th;
+
+  // Restore sort marker
+  if (sortIdx >= 0) {
+    const inn = document.querySelector(`#TH${sortIdx} .th-in`);
+    if (inn) { inn.classList.add(sortAsc?'sa':'sd'); inn.querySelector('.sico').textContent = sortAsc?'↑':'↓'; }
+  }
+
+  // Empty search result
+  if (!rows.length) {
+    document.getElementById('tbody').innerHTML = `<tr><td colspan="99"><div class="state-box">
+      <span class="si">🔍</span><div class="st">No Results</div>
+      <div class="ss">No rows match your search</div></div></td></tr>`;
+    document.getElementById('footTxt').innerHTML = '<strong>0</strong> rows';
+    return;
+  }
+
+  // Rows — NO onclick, NO cursor:pointer
+  let body = '';
+  rows.forEach((row, ri) => {
+    body += `<tr class="rin" style="animation-delay:${Math.min(ri*0.010, 0.4)}s">`;
+    body += `<td class="rn">${ri+1}</td>`;
+
+    headers.forEach((_, ci) => {
+      const raw  = (row[ci] ?? '').toString();
+      // Detect numeric
+      const numTest = raw.replace(/[$,%\s]/g,'');
+      const isNum   = raw !== '' && numTest !== '' && !isNaN(Number(numTest)) && numTest.length > 0;
+      // Short text tag (only cols 1-7)
+      const isShort = raw.length > 0 && raw.length <= 15 && !isNum && ci > 0 && ci < 8;
+      const isPrim  = ci === 0;
+
+      let cont;
+      if (!raw)           cont = '<span class="ec">—</span>';
+      else if (isNum && ci > 0) cont = `<span class="np">${escH(raw)}</span>`;
+      else if (isShort)   { const [bg,tc] = TPILLS[ci % TPILLS.length]; cont = `<span class="tp" style="background:${bg};color:${tc}">${escH(raw)}</span>`; }
+      else                cont = escH(raw);
+
+      body += `<td class="${isPrim ? 'cprim' : ''}">${cont}</td>`;
+    });
+    body += '</tr>';
+  });
+
+  document.getElementById('tbody').innerHTML = body;
+  document.getElementById('footTxt').innerHTML =
+    `Showing <strong>${rows.length}</strong> of <strong>${filteredRows.length}</strong> dispatch records`;
+}
+
+/* ── Sort column ── */
+function sortCol(inn, idx) {
+  if (sortIdx === idx) sortAsc = !sortAsc; else { sortIdx = idx; sortAsc = true; }
+  document.querySelectorAll('.th-in').forEach(t => t.classList.remove('sa','sd'));
+  inn.classList.add(sortAsc ? 'sa' : 'sd');
+  inn.querySelector('.sico').textContent = sortAsc ? '↑' : '↓';
+  doSort();
+}
+
+/* ═══════════════════════════════════════════
+   MAP
+═══════════════════════════════════════════ */
+function initMap() {
+  if (map) return;
+  map = L.map('liveMap').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:19}).addTo(map);
+}
+
+function detectGPS() {
+  let latIdx=-1, lngIdx=-1, namIdx=-1;
+  headers.forEach((h,i) => {
+    if (/^(lat(itude)?|y)$/i.test(h.trim()))   latIdx=i;
+    if (/^(lon(gitude)?|lng|x)$/i.test(h.trim())) lngIdx=i;
+    if (/^(name|title|label|id|location|place|vehicle|truck|driver|dispatch)$/i.test(h.trim()) && namIdx===-1) namIdx=i;
+  });
+  return {latIdx, lngIdx, namIdx};
+}
+
+function updateMap() {
+  if (!map) return;
+  const {latIdx,lngIdx,namIdx} = detectGPS();
+  markers.forEach(m=>m.remove()); markers=[];
+  const nd = document.getElementById('mapND');
+
+  if (latIdx===-1 || lngIdx===-1) {
+    nd.classList.remove('gone');
+    document.getElementById('mCnt').textContent = '—';
+    document.getElementById('mGps').textContent = 'None detected';
+    document.getElementById('locBody').innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3)">Add Latitude & Longitude columns</div>';
+    return;
+  }
+  nd.classList.add('gone');
+  document.getElementById('mGps').textContent = `${headers[latIdx]} / ${headers[lngIdx]}`;
+
+  const pts=[]; let locH='';
+  allRows.forEach((row,ri) => {
+    const lat=parseFloat(row[latIdx]), lng=parseFloat(row[lngIdx]);
+    if (isNaN(lat)||isNaN(lng)) return;
+    const name = namIdx>=0 ? (row[namIdx]||`Point ${ri+1}`) : `Point ${ri+1}`;
+    const icon  = L.divIcon({className:'',html:`<div style="width:13px;height:13px;background:#C8102E;border:2.5px solid white;border-radius:50%;box-shadow:0 2px 10px rgba(200,16,46,0.6);"></div>`,iconSize:[13,13],iconAnchor:[6,6],popupAnchor:[0,-8]});
+    const mk    = L.marker([lat,lng],{icon}).addTo(map)
+      .bindPopup(`<div style="font-family:Rajdhani,sans-serif;min-width:180px;">
+        <div style="font-size:15px;font-weight:700;border-bottom:2px solid #C8102E;padding-bottom:6px;margin-bottom:8px;">${escH(name)}</div>
+        ${headers.map((h,ci)=>ci===latIdx||ci===lngIdx?'':`<div style="margin-bottom:4px;"><span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#888;">${escH(h)}:</span><br/><strong>${escH(row[ci]||'—')}</strong></div>`).join('')}
+        <div style="margin-top:8px;font-family:monospace;font-size:10px;color:#888;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+      </div>`,{maxWidth:260});
+    markers.push(mk); pts.push([lat,lng]);
+    locH += `<div class="loc-item" id="L${ri}" onclick="zoomMk(${lat},${lng},${ri})"><div class="loc-dot"></div><div><div class="loc-name">${escH(name)}</div><div class="loc-coord">${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E</div></div><span class="loc-badge">#${ri+1}</span></div>`;
+  });
+
+  document.getElementById('locBody').innerHTML = locH || '<div style="padding:18px;text-align:center;color:var(--text3)">No valid GPS found</div>';
+  document.getElementById('mCnt').textContent  = pts.length;
+  if (pts.length > 0) map.fitBounds(L.latLngBounds(pts), {padding:[40,40]});
+}
+
+function zoomMk(lat,lng,ri) {
+  if(!map) return;
+  map.setView([lat,lng],14,{animate:true});
+  markers[ri]?.openPopup();
+  document.querySelectorAll('.loc-item').forEach(el=>el.classList.remove('acloc'));
+  document.getElementById('L'+ri)?.classList.add('acloc');
+}
+function fitAll()     { if(!map||!markers.length)return; map.fitBounds(L.latLngBounds(markers.map(m=>m.getLatLng())),{padding:[40,40]}); }
+function clearTracks(){ polylines.forEach(p=>p.remove()); polylines=[]; toast('Tracks cleared','ok'); }
+
+/* ── Helpers ── */
+let toastT;
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 4000);
+}
+
+function setStatus(s) {
+  const d = document.getElementById('dotEl'), l = document.getElementById('lblEl');
+  d.className = 'dot' + (s==='err'?' err':s==='loading'?' loading':'');
+  l.textContent = s==='ok'?'Live': s==='err'?'Error':'Syncing…';
+}
+function setLoad(on) { document.getElementById('loadOv').classList.toggle('on', on); }
+
+function showState(icon, title, sub) {
+  document.getElementById('tbody').innerHTML = `<tr><td colspan="99"><div class="state-box">
+    <span class="si">${icon}</span><div class="st">${title}</div><div class="ss">${sub}</div></div></td></tr>`;
+}
+function showDiag(msg) {
+  document.getElementById('diagCode').textContent = msg;
+  document.getElementById('diagEl').classList.add('show');
+  document.getElementById('cfgBtn').classList.add('open');
+  document.getElementById('cfgDrawer').style.display = 'block';
+}
+function hideDiag() { document.getElementById('diagEl').classList.remove('show'); }
+
+function manualRefresh() {
+  const b = document.getElementById('refBtn'); b.classList.add('spin');
+  fetchData().finally(()=>b.classList.remove('spin'));
+  startProg();
+}
+
+function cLetter(i) { return i<26?String.fromCharCode(65+i):String.fromCharCode(64+Math.floor(i/26))+String.fromCharCode(65+(i%26)); }
+function escH(s)    { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; }
+
+/* Keyboard */
+document.addEventListener('keydown', e => {
+  if (e.key==='/' && !['INPUT','TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); document.getElementById('srchIn').focus(); }
+  if (e.key==='r' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); manualRefresh(); }
+});
+
+/* Auto-start */
+window.addEventListener('DOMContentLoaded', () => setTimeout(applyConfig, 400));
+</script>
+</body>
+</html>
